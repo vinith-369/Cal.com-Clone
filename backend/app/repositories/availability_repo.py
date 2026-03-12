@@ -1,5 +1,6 @@
 """Repository for Availability data access."""
 
+from typing import Optional, List
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.availability import AvailabilitySchedule, AvailabilityRule, DateOverride
@@ -13,7 +14,7 @@ class AvailabilityRepository:
 
     # ── Schedules ──────────────────────────────────────────
 
-    def get_all_schedules(self) -> list[AvailabilitySchedule]:
+    def get_all_schedules(self) -> List[AvailabilitySchedule]:
         return (
             self.db.query(AvailabilitySchedule)
             .options(
@@ -24,7 +25,7 @@ class AvailabilityRepository:
             .all()
         )
 
-    def get_schedule_by_id(self, schedule_id: int) -> AvailabilitySchedule | None:
+    def get_schedule_by_id(self, schedule_id: int) -> Optional[AvailabilitySchedule]:
         return (
             self.db.query(AvailabilitySchedule)
             .options(
@@ -35,7 +36,7 @@ class AvailabilityRepository:
             .first()
         )
 
-    def get_default_schedule(self) -> AvailabilitySchedule | None:
+    def get_default_schedule(self) -> Optional[AvailabilitySchedule]:
         return (
             self.db.query(AvailabilitySchedule)
             .options(
@@ -46,7 +47,7 @@ class AvailabilityRepository:
             .first()
         )
 
-    def create_schedule(self, data: dict, rules: list[dict] | None = None) -> AvailabilitySchedule:
+    def create_schedule(self, data: dict, rules: Optional[List[dict]] = None) -> AvailabilitySchedule:
         # If this is set as default, unset any existing default
         if data.get("is_default"):
             self.db.query(AvailabilitySchedule).filter(
@@ -67,7 +68,7 @@ class AvailabilityRepository:
         return schedule
 
     def update_schedule(
-        self, schedule: AvailabilitySchedule, data: dict, rules: list[dict] | None = None
+        self, schedule: AvailabilitySchedule, data: dict, rules: Optional[List[dict]] = None
     ) -> AvailabilitySchedule:
         if data.get("is_default"):
             self.db.query(AvailabilitySchedule).filter(

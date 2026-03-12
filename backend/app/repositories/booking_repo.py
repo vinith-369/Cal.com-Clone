@@ -1,6 +1,7 @@
 """Repository for Booking data access."""
 
 from datetime import datetime
+from typing import Optional, List
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import and_
 
@@ -13,7 +14,7 @@ class BookingRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def get_all(self, status_filter: str | None = None) -> list[Booking]:
+    def get_all(self, status_filter: Optional[str] = None) -> List[Booking]:
         query = (
             self.db.query(Booking)
             .options(joinedload(Booking.event_type))
@@ -54,7 +55,7 @@ class BookingRepository:
             .all()
         )
 
-    def get_by_id(self, booking_id: int) -> Booking | None:
+    def get_by_id(self, booking_id: int) -> Optional[Booking]:
         return (
             self.db.query(Booking)
             .options(joinedload(Booking.event_type))
@@ -67,8 +68,8 @@ class BookingRepository:
         event_type_id: int,
         start: datetime,
         end: datetime,
-        exclude_booking_id: int | None = None,
-    ) -> list[Booking]:
+        exclude_booking_id: Optional[int] = None,
+    ) -> List[Booking]:
         """Get confirmed bookings overlapping with the given range."""
         query = self.db.query(Booking).filter(
             Booking.status == "confirmed",

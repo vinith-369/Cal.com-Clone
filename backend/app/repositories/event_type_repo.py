@@ -1,5 +1,6 @@
 """Repository for Event Type data access."""
 
+from typing import Optional, List
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.event_type import EventType
@@ -12,7 +13,7 @@ class EventTypeRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def get_all(self) -> list[EventType]:
+    def get_all(self) -> List[EventType]:
         return (
             self.db.query(EventType)
             .options(joinedload(EventType.custom_questions))
@@ -20,7 +21,7 @@ class EventTypeRepository:
             .all()
         )
 
-    def get_by_id(self, event_type_id: int) -> EventType | None:
+    def get_by_id(self, event_type_id: int) -> Optional[EventType]:
         return (
             self.db.query(EventType)
             .options(joinedload(EventType.custom_questions))
@@ -28,7 +29,7 @@ class EventTypeRepository:
             .first()
         )
 
-    def get_by_slug(self, slug: str) -> EventType | None:
+    def get_by_slug(self, slug: str) -> Optional[EventType]:
         return (
             self.db.query(EventType)
             .options(joinedload(EventType.custom_questions))
@@ -36,7 +37,7 @@ class EventTypeRepository:
             .first()
         )
 
-    def create(self, data: dict, custom_questions: list[dict] | None = None) -> EventType:
+    def create(self, data: dict, custom_questions: Optional[List[dict]] = None) -> EventType:
         event_type = EventType(**data)
         self.db.add(event_type)
         self.db.flush()  # get the ID
@@ -51,7 +52,7 @@ class EventTypeRepository:
         self.db.refresh(event_type)
         return event_type
 
-    def update(self, event_type: EventType, data: dict, custom_questions: list[dict] | None = None) -> EventType:
+    def update(self, event_type: EventType, data: dict, custom_questions: Optional[List[dict]] = None) -> EventType:
         for key, value in data.items():
             if value is not None:
                 setattr(event_type, key, value)

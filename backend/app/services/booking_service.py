@@ -2,6 +2,7 @@
 
 import uuid
 from datetime import date, datetime, timedelta
+from typing import Optional, List, Dict
 from zoneinfo import ZoneInfo
 from fastapi import HTTPException
 
@@ -28,8 +29,8 @@ class BookingService:
         self.email_service = EmailService()
 
     def get_available_slots(
-        self, slug: str, target_date: date, exclude_booking_id: int | None = None
-    ) -> list[dict]:
+        self, slug: str, target_date: date, exclude_booking_id: Optional[int] = None
+    ) -> List[Dict]:
         """Compute available time slots for a given event type and date."""
         event_type = self.event_type_repo.get_by_slug(slug)
         if not event_type:

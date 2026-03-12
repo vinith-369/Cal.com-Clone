@@ -8,6 +8,7 @@ Computes available time slots for a given date by combining:
 """
 
 from datetime import date, time, datetime, timedelta
+from typing import List, Optional, Dict, Tuple
 
 from app.models.availability import AvailabilitySchedule, DateOverride
 from app.models.booking import Booking
@@ -31,12 +32,14 @@ class SlotGenerator:
         self.duration = timedelta(minutes=duration_minutes)
         self.buffer_before = timedelta(minutes=buffer_before)
         self.buffer_after = timedelta(minutes=buffer_after)
+        # Total block = buffer_before + meeting + buffer_after
+        self.slot_step = self.buffer_before + self.duration + self.buffer_after
 
     def get_available_slots(
         self,
         target_date: date,
-        existing_bookings: list[Booking],
-    ) -> list[dict]:
+        existing_bookings: List[Booking],
+    ) -> List[Dict]:
         """Return list of available start times for the target date."""
 
         # Step 1: Determine working hours for this date
@@ -46,16 +49,26 @@ class SlotGenerator:
 
         from zoneinfo import ZoneInfo
         tz = ZoneInfo(self.schedule.timezone)
-        
+
         # Step 2: Generate candidate slots from working periods
+        # Each slot occupies: [buffer_before] [meeting duration] [buffer_after]
+        # The meeting starts at slot_start + buffer_before conceptually,
+        # but the USER picks the meeting start time, so we offset:
+        #   - The first available meeting start = period_start + buffer_before
+        #   - Each next meeting start advances by slot_step
+        #   - The meeting must end + buffer_after within the period end
         candidates = []
         for start_t, end_t in working_periods:
-            slot_start = datetime.combine(target_date, start_t).replace(tzinfo=tz)
-            slot_end_limit = datetime.combine(target_date, end_t).replace(tzinfo=tz)
+            period_start = datetime.combine(target_date, start_t).replace(tzinfo=tz)
+            period_end = datetime.combine(target_date, end_t).replace(tzinfo=tz)
 
-            while slot_start + self.duration <= slot_end_limit:
-                candidates.append(slot_start)
-                slot_start += self.duration
+            # First meeting can start at period start + buffer_before
+            meeting_start = period_start + self.buffer_before
+
+            while meeting_start + self.duration + self.buffer_after <= period_end:
+                candidates.append(meeting_start)
+                # Next meeting starts after: current_meeting_end + buffer_after + buffer_before
+                meeting_start += self.slot_step
 
         # Step 3: Filter out slots that conflict with existing bookings (+ buffers)
         available = []
@@ -79,7 +92,7 @@ class SlotGenerator:
 
         return available
 
-    def _get_working_periods(self, target_date: date) -> list[tuple[time, time]]:
+    def _get_working_periods(self, target_date: date) -> List[Tuple[time, time]]:
         """Determine working time periods for a specific date.
 
         Checks date overrides first (Strategy: override takes precedence),
