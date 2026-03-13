@@ -3,8 +3,8 @@
 A full-stack scheduling/booking web application built for the **Scaler SDE Intern Fullstack Assignment**. It closely replicates Cal.com's design, UX, and core functionality.
 
 ## 🚀 Live Demo
-- **Frontend / Booking Public Page:** https://calclone-self.vercel.app
-- **Backend API Docs:** https://cal-com-clone-maud.onrender.com/docs
+- **Frontend / Booking Public Page:** [Insert Deployed Vercel/Netlify URL Here]
+- **Backend API Docs:** [Insert Deployed Render/Railway URL Here]/docs
 
 ---
 
@@ -88,10 +88,71 @@ The application adheres strictly to SOLID principles, leveraging Python's depend
 - **Services**: Core calculation and business logic (e.g., Slot Generation Strategy based on timezone arithmetic).
 - **Repositories**: Isolated data access layer handling SQLAlchemy execution.
 
-**Key Database Entities:**
-- `EventType`: Holds slug, title, duration, buffer times, recurring settings, linked availability schedule.
-- `AvailabilitySchedule`: Named schedule with weekly rules (day + time range) and date overrides.
-- `Booking`: Ties it all together, holding start/end times precisely aligned to timezone-aware timestamps.
+---
+
+## 🗄️ Database Schema
+
+```
+event_types
+  |- id (PK)
+  |- title
+  |- slug (UNIQUE, INDEX)
+  |- description
+  |- duration_minutes
+  |- buffer_before
+  |- buffer_after
+  |- is_active
+  |- availability_schedule_id (FK → availability_schedules.id)
+  |- is_recurring
+  |- recurring_interval
+  |- recurring_count
+  |- created_at
+  |- updated_at
+
+availability_schedules
+  |- id (PK)
+  |- name
+  |- timezone
+  |- is_default
+  |- created_at
+
+availability_rules
+  |- id (PK)
+  |- schedule_id (FK → availability_schedules.id)
+  |- day_of_week (0=Mon … 6=Sun)
+  |- start_time
+  |- end_time
+
+date_overrides
+  |- id (PK)
+  |- schedule_id (FK → availability_schedules.id)
+  |- date
+  |- start_time
+  |- end_time
+  |- is_blocked
+
+bookings
+  |- id (PK)
+  |- event_type_id (FK → event_types.id)
+  |- booker_name
+  |- booker_email
+  |- start_time (INDEX)
+  |- end_time
+  |- status (confirmed / cancelled / rescheduled)
+  |- timezone
+  |- custom_responses (JSON)
+  |- recurring_uid (INDEX)
+  |- created_at
+
+custom_questions
+  |- id (PK)
+  |- event_type_id (FK → event_types.id)
+  |- label
+  |- type (text / textarea / select / radio / checkbox)
+  |- required
+  |- options (JSON)
+  |- sort_order
+```
 
 **Key API Endpoints:**
 | Method | Endpoint | Description |
