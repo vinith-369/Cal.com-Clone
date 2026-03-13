@@ -3,8 +3,8 @@
 A full-stack scheduling/booking web application built for the **Scaler SDE Intern Fullstack Assignment**. It closely replicates Cal.com's design, UX, and core functionality.
 
 ## 🚀 Live Demo
-- **Frontend / Booking Public Page:** [Insert Deployed Vercel/Netlify URL Here]
-- **Backend API Docs:** [Insert Deployed Render/Railway URL Here]/docs
+- **Frontend / Booking Public Page:** https://calclone-self.vercel.app
+- **Backend API Docs:** (https://cal-com-clone-maud.onrender.com/docs)
 
 ---
 
