@@ -4,7 +4,7 @@ A full-stack scheduling/booking web application built for the **Scaler SDE Inter
 
 ## 🚀 Live Demo
 - **Frontend / Booking Public Page:** https://calclone-self.vercel.app
-- **Backend API Docs:** (https://cal-com-clone-maud.onrender.com/docs)
+- **Backend API Docs:** https://cal-com-clone-maud.onrender.com/docs
 
 ---
 
