@@ -64,18 +64,21 @@ npm run dev
 ## ✨ Features Implemented
 
 ### Core Requirements
-- **Event Types Management** — Create, edit, delete, toggle active/inactive, copy booking link.
-- **Availability Settings** — Weekly inline schedule editor, timezone selection, multiple schedules.
-- **Public Booking Page** — Dynamic calendar view, exact time slot generation based on buffer/duration boundaries, booking form with conflict validation.
+- **Event Types Management** — Create, edit, delete, toggle active/inactive, copy booking link. Full-page editor with tabbed sidebar (Basics, Availability, Recurring).
+- **Availability Settings** — Weekly inline schedule editor, timezone selection, multiple named schedules, set default schedule, inline name editing.
+- **Public Booking Page** — Dynamic calendar with **date highlighting** (available dates shown with dark backgrounds like the real Cal.com), exact time slot generation based on buffer/duration boundaries, booking form with conflict validation.
 - **Bookings Dashboard** — Upcoming/past/cancelled tabs, detailed weekly calendar grid view, cancellation functionality.
 
 ### Bonus Features Completed
 - ✅ **Responsive Design** — Fully mobile-friendly across all dashboards.
 - ✅ **Date Overrides** — Ability to block specific dates or set custom hours overriding the weekly schedule.
-- ✅ **Rescheduling Flow** — Existing bookings can be rescheduled.
-- ✅ **Real Email Notifications** — The backend natively sends actual SMTP confirmation emails instead of console logging.
-- ✅ **Buffer Time** — Accounts for buffer time before/after meetings to prevent back-to-back burnout.
+- ✅ **Rescheduling Flow** — Existing bookings can be rescheduled to a new time slot.
+- ✅ **Real Email Notifications** — The backend sends actual SMTP confirmation emails instead of console logging.
+- ✅ **Buffer Time** — Cal.com-style dropdown selectors ("Before event" / "After event") with standard buffer options. Buffers prevent back-to-back burnout by adding protective padding.
 - ✅ **Custom Booking Questions** — Stores custom responses dynamically.
+- ✅ **Recurring Events** — Configurable recurring bookings (daily/weekly/monthly) with automatic conflict skipping for subsequent occurrences.
+- ✅ **Cross-Event Conflict Detection** — Slots blocked by bookings from ANY event type, not just the same one. E.g., an "interview" booking blocks those time slots across all other event types.
+- ✅ **Month Availability API** — Single endpoint returns all available dates for an entire month, powering the calendar date highlighting without 31 separate API calls.
 
 ---
 
@@ -86,16 +89,30 @@ The application adheres strictly to SOLID principles, leveraging Python's depend
 - **Repositories**: Isolated data access layer handling SQLAlchemy execution.
 
 **Key Database Entities:**
-- `User`: Handles timezone and schedule metadata.
-- `EventType`: Holds slug, title, duration, buffer times. 
-- `Availability`: JSON/structured mapping of Days to Array of Time ranges + Date Overrides.
-- `Booking`: Ties it all together, holding start/end times precisely aligned to UTC timestamps.
+- `EventType`: Holds slug, title, duration, buffer times, recurring settings, linked availability schedule.
+- `AvailabilitySchedule`: Named schedule with weekly rules (day + time range) and date overrides.
+- `Booking`: Ties it all together, holding start/end times precisely aligned to timezone-aware timestamps.
+
+**Key API Endpoints:**
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/event-types` | List all event types |
+| POST | `/api/event-types` | Create event type |
+| PUT | `/api/event-types/{id}` | Update event type |
+| GET | `/api/availability` | List all schedules |
+| POST | `/api/availability` | Create schedule |
+| GET | `/api/bookings/slots/{slug}?date=YYYY-MM-DD` | Get available time slots for a date |
+| GET | `/api/bookings/slots/{slug}/month?month=YYYY-MM` | Get available dates for a month |
+| POST | `/api/bookings` | Create booking |
+| GET | `/api/bookings?tab=upcoming` | List bookings (upcoming/past/cancelled) |
+| PATCH | `/api/bookings/{id}/cancel` | Cancel booking |
+| PATCH | `/api/bookings/{id}/reschedule` | Reschedule booking |
 
 ---
 
 ## 📝 Technical Assumptions & Implementation Details
 
-1.  **Identity & Authentication**: Following the project's "No Login Required" design, the platform operates under a single-tenant assumption. A default admin user (`vinith`) is used to anchor all availability schedules and event types.
+1.  **Identity & Authentication**: Following the project's "No Login Required" design, the platform operates under a single-tenant assumption. A default admin user is used to anchor all availability schedules and event types.
 2.  **Date Override Precedence**: Date-specific overrides (e.g., specific holidays or custom hours) take absolute precedence over the recurring weekly schedule. If a date is marked as "Blocked" in overrides, all weekly slots are suppressed for that day.
 3.  **Conflict & Buffer Logic**: A time slot is only generated if the entire duration *and* its associated "Buffer Before" and "Buffer After" windows are free. Buffers are treated as non-overlapping "protective padding" around meetings.
 4.  **Recurring Series Handling**: To match high-end scheduling behavior:
