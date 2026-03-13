@@ -146,6 +146,17 @@
     opacity: 0.4;
 }
 
+.calendar__day--available {
+    background: #1c1c1c;
+    color: #ffffff;
+    border-radius: 6px;
+    font-weight: 600;
+}
+
+.calendar__day--available:hover {
+    background: #333333;
+}
+
 .calendar__day--other-month {
     visibility: hidden;
 }

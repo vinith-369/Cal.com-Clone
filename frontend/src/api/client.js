@@ -63,4 +63,7 @@ export const bookingsApi = {
     if (excludeBooking) url += `&exclude_booking=${excludeBooking}`;
     return request(url);
   },
+  getMonthAvailability: (slug, month) => {
+    return request(`/bookings/slots/${slug}/month?month=${month}`);
+  },
 };

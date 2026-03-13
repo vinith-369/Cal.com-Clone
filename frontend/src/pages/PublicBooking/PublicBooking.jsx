@@ -23,6 +23,7 @@ export default function PublicBooking() {
     const [submitting, setSubmitting] = useState(false);
     const [bookingForm, setBookingForm] = useState({ name: "vinith", email: "vinithlankireddy@gmail.com", custom_responses: {} });
     const [error, setError] = useState(null);
+    const [availableDates, setAvailableDates] = useState(new Set());
 
     useEffect(() => {
         async function load() {
@@ -34,6 +35,21 @@ export default function PublicBooking() {
         }
         load();
     }, [slug]);
+
+    // Fetch which dates have availability for the current month
+    useEffect(() => {
+        if (!eventType) return;
+        async function loadMonthAvailability() {
+            try {
+                const year = currentMonth.getFullYear();
+                const month = String(currentMonth.getMonth() + 1).padStart(2, '0');
+                const monthStr = `${year}-${month}`;
+                const dates = await bookingsApi.getMonthAvailability(slug, monthStr);
+                setAvailableDates(new Set(dates));
+            } catch { setAvailableDates(new Set()); }
+        }
+        loadMonthAvailability();
+    }, [currentMonth, slug, eventType]);
 
     useEffect(() => {
         if (!selectedDate) return;
@@ -75,6 +91,14 @@ export default function PublicBooking() {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         return d < today;
+    };
+
+    const isAvailable = (d) => {
+        if (!d) return false;
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return availableDates.has(`${year}-${month}-${day}`);
     };
 
     const isSelected = (d) => {
@@ -184,7 +208,7 @@ export default function PublicBooking() {
                                     {calendarDays.map((day, i) => (
                                         <button
                                             key={i}
-                                            className={`calendar__day ${!day ? "calendar__day--other-month" : ""} ${day && isToday(day) ? "calendar__day--today" : ""} ${day && isSelected(day) ? "calendar__day--selected" : ""} ${day && isPast(day) ? "calendar__day--disabled" : ""}`}
+                                            className={`calendar__day ${!day ? "calendar__day--other-month" : ""} ${day && isToday(day) ? "calendar__day--today" : ""} ${day && isSelected(day) ? "calendar__day--selected" : ""} ${day && isPast(day) ? "calendar__day--disabled" : ""} ${day && !isPast(day) && isAvailable(day) && !isSelected(day) ? "calendar__day--available" : ""}`}
                                             onClick={() => day && !isPast(day) && setSelectedDate(day)}
                                             disabled={!day || isPast(day)}
                                         >

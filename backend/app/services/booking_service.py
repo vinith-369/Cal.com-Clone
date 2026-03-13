@@ -1,8 +1,9 @@
 """Service layer for Booking business logic."""
 
+import calendar
 import uuid
 from datetime import date, datetime, timedelta
-from typing import Optional, List, Dict
+from typing import Optional, List
 from zoneinfo import ZoneInfo
 from fastapi import HTTPException
 
@@ -10,7 +11,6 @@ from app.repositories.booking_repo import BookingRepository
 from app.repositories.event_type_repo import EventTypeRepository
 from app.repositories.availability_repo import AvailabilityRepository
 from app.services.slot_generator import SlotGenerator
-from app.services.email_service import EmailService
 from app.schemas.booking import BookingCreate, BookingReschedule
 
 
@@ -26,11 +26,10 @@ class BookingService:
         self.booking_repo = booking_repo
         self.event_type_repo = event_type_repo
         self.availability_repo = availability_repo
-        self.email_service = EmailService()
 
     def get_available_slots(
         self, slug: str, target_date: date, exclude_booking_id: Optional[int] = None
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """Compute available time slots for a given event type and date."""
         event_type = self.event_type_repo.get_by_slug(slug)
         if not event_type:
@@ -167,20 +166,10 @@ class BookingService:
                 else:
                     break
 
-        # Send email for the first booking (or a summary email)
-        if created_bookings:
-            self.email_service.notify_booking_created({
-                "booker_name": data.booker_name,
-                "booker_email": data.booker_email,
-                "event_title": f"{event_type.title} {'(Recurring)' if occurrences_count > 1 else ''}",
-                "start_time": data.start_time.isoformat(),
-                "duration": event_type.duration_minutes,
-            })
-
         return created_bookings[0] if created_bookings else None
 
     def cancel_booking(self, booking_id: int):
-        """Cancel a booking and notify the booker."""
+        """Cancel a booking."""
         booking = self.booking_repo.get_by_id(booking_id)
         if not booking:
             raise HTTPException(status_code=404, detail="Booking not found")
@@ -188,14 +177,6 @@ class BookingService:
             raise HTTPException(status_code=400, detail="Booking is already cancelled")
 
         updated = self.booking_repo.update_status(booking, "cancelled")
-
-        self.email_service.notify_booking_cancelled({
-            "booker_name": booking.booker_name,
-            "booker_email": booking.booker_email,
-            "event_title": booking.event_type.title if booking.event_type else "Meeting",
-            "start_time": booking.start_time.isoformat(),
-        })
-
         return updated
 
     def reschedule_booking(self, booking_id: int, data: BookingReschedule):
@@ -224,15 +205,6 @@ class BookingService:
             )
 
         updated = self.booking_repo.update_times(booking, data.start_time, new_end, data.timezone)
-
-        self.email_service.notify_booking_rescheduled({
-            "booker_name": booking.booker_name,
-            "booker_email": booking.booker_email,
-            "event_title": event_type.title,
-            "start_time": data.start_time.isoformat(),
-            "duration": event_type.duration_minutes,
-        })
-
         return updated
 
     def get_booking(self, booking_id: int):
@@ -249,3 +221,60 @@ class BookingService:
 
     def list_cancelled(self):
         return self.booking_repo.get_cancelled()
+
+    def get_available_dates_for_month(
+        self, slug: str, year: int, month: int
+    ) -> list[str]:
+        """Return a list of date strings (YYYY-MM-DD) that have at least one available slot."""
+        event_type = self.event_type_repo.get_by_slug(slug)
+        if not event_type:
+            raise HTTPException(status_code=404, detail="Event type not found")
+
+        # Get the availability schedule
+        schedule = None
+        if event_type.availability_schedule_id:
+            schedule = self.availability_repo.get_schedule_by_id(
+                event_type.availability_schedule_id
+            )
+        if not schedule:
+            schedule = self.availability_repo.get_default_schedule()
+        if not schedule:
+            return []
+
+        tz = ZoneInfo(schedule.timezone)
+
+        generator = SlotGenerator(
+            schedule=schedule,
+            duration_minutes=event_type.duration_minutes,
+            buffer_before=event_type.buffer_before,
+            buffer_after=event_type.buffer_after,
+        )
+
+        # Get all bookings for this month
+        first_day = date(year, month, 1)
+        last_day_num = calendar.monthrange(year, month)[1]
+        last_day = date(year, month, last_day_num)
+        month_start = datetime.combine(first_day, datetime.min.time()).replace(tzinfo=tz)
+        month_end = datetime.combine(last_day, datetime.max.time()).replace(tzinfo=tz)
+        all_bookings = self.booking_repo.get_bookings_for_date_range(
+            event_type.id, month_start, month_end
+        )
+
+        available_dates = []
+        today = date.today()
+        current = first_day
+        while current <= last_day:
+            if current >= today:
+                # Filter bookings for this specific day
+                day_start = datetime.combine(current, datetime.min.time()).replace(tzinfo=tz)
+                day_end = datetime.combine(current, datetime.max.time()).replace(tzinfo=tz)
+                day_bookings = [
+                    b for b in all_bookings
+                    if b.start_time < day_end and b.end_time > day_start
+                ]
+                slots = generator.get_available_slots(current, day_bookings)
+                if slots:
+                    available_dates.append(current.isoformat())
+            current += timedelta(days=1)
+
+        return available_dates

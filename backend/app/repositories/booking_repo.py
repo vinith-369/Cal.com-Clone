@@ -3,7 +3,6 @@
 from datetime import datetime
 from typing import Optional, List
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import and_
 
 from app.models.booking import Booking
 

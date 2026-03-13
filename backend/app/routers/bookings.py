@@ -100,6 +100,21 @@ def reschedule_booking(
     return _to_response(booking)
 
 
+@router.get("/slots/{slug}/month")
+def get_available_dates_for_month(
+    slug: str,
+    month: str = Query(..., description="Month in YYYY-MM format"),
+    service: BookingService = Depends(get_service),
+):
+    """Get all dates with available slots for an entire month."""
+    try:
+        year, m = month.split("-")
+        return service.get_available_dates_for_month(slug, int(year), int(m))
+    except ValueError:
+        from fastapi import HTTPException as _HTTPException
+        raise _HTTPException(status_code=400, detail="Invalid month format. Use YYYY-MM")
+
+
 @router.get("/slots/{slug}")
 def get_available_slots(
     slug: str,
