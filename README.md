@@ -144,14 +144,6 @@ bookings
   |- recurring_uid (INDEX)
   |- created_at
 
-custom_questions
-  |- id (PK)
-  |- event_type_id (FK → event_types.id)
-  |- label
-  |- type (text / textarea / select / radio / checkbox)
-  |- required
-  |- options (JSON)
-  |- sort_order
 ```
 
 **Key API Endpoints:**
